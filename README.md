@@ -33,8 +33,7 @@ cd backend
 - [x] Spring Boot project initialized with Kotlin DSL
 - [x] docker-compose.yml for Postgres + Redis with healthchecks
 - [x] GitHub Actions workflow running tests on PR
-- [ ] Open a PR from a `feature/scaffolding` branch and merge it (do this yourself)
-
+- [x] Open a PR from a `feature/scaffolding` branch and merge it (do this yourself)
 ## What's next (Day 2)
 Flyway migrations for `accounts` and `ledger_entries`, JPA entities, and a
 `LedgerService` that keeps every transaction's debits and credits balanced.
