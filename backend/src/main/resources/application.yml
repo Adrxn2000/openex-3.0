@@ -19,3 +19,7 @@ spring:
 
 server:
   port: 8080
+
+jwt:
+  secret: "change-this-to-a-long-random-string-before-any-real-deployment-32chars-min"
+  expiration-ms: 3600000

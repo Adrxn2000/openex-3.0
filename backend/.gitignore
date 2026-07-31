@@ -1,6 +1,7 @@
 .gradle/
 build/
+bin/
+*.log
 .idea/
 *.iml
 out/
-bin/
