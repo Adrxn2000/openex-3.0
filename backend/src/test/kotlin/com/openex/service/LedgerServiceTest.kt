@@ -2,8 +2,10 @@ package com.openex.service
 
 import com.openex.domain.Account
 import com.openex.domain.EntryDirection
+import com.openex.domain.User
 import com.openex.repository.AccountRepository
 import com.openex.repository.LedgerEntryRepository
+import com.openex.repository.UserRepository
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
@@ -20,15 +22,26 @@ class LedgerServiceTest {
     lateinit var ledgerService: LedgerService
 
     @Autowired
+    lateinit var userRepository: UserRepository
+
+    @Autowired
     lateinit var accountRepository: AccountRepository
 
     @Autowired
     lateinit var ledgerEntryRepository: LedgerEntryRepository
 
-    private fun newAccount(): Account =
-        accountRepository.save(
-            Account(id = UUID.randomUUID(), userId = UUID.randomUUID(), currency = "USD")
+    private fun newAccount(): Account {
+        val user = userRepository.save(
+            User(
+                id = UUID.randomUUID(),
+                username = "test-${UUID.randomUUID()}",
+                passwordHash = "not-a-real-hash"
+            )
         )
+        return accountRepository.save(
+            Account(id = UUID.randomUUID(), userId = user.id, currency = "ZAR")
+        )
+    }
 
     @Test
     fun `ledger entries always sum to zero for a balanced transfer`() {
