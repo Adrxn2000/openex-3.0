@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>OpenEx WebSocket Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7/bundles/stomp.umd.min.js"></script>
+</head>
+<body>
+    <h2>Order Book Live Feed</h2>
+    <div id="log" style="font-family: monospace; white-space: pre-wrap;"></div>
+
+    <script>
+        const log = document.getElementById('log');
+        const socket = new SockJS('http://localhost:8080/ws');
+        const client = new StompJs.Client({ webSocketFactory: () => socket });
+
+        client.onConnect = () => {
+            log.innerText += "Connected!\n";
+            client.subscribe('/topic/orderbook', (message) => {
+                log.innerText += "Received: " + message.body + "\n";
+            });
+        };
+
+        client.activate();
+    </script>
+</body>
+</html>
