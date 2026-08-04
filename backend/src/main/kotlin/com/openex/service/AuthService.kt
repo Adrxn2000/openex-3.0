@@ -42,12 +42,12 @@ class AuthService(
 
     /** Checks credentials and returns a fresh token if they're correct. */
     fun login(username: String, rawPassword: String): String {
-        val user = userRepository.findByUsername(username)
-            ?: throw IllegalArgumentException("Invalid username or password")
+       val user = userRepository.findByUsername(username)
+    ?: throw InvalidCredentialsException("Invalid username or password")
 
-        require(passwordEncoder.matches(rawPassword, user.passwordHash)) {
-            "Invalid username or password"
-        }
+if (!passwordEncoder.matches(rawPassword, user.passwordHash)) {
+    throw InvalidCredentialsException("Invalid username or password")
+}
 
         return jwtService.generateToken(user.username)
     }
