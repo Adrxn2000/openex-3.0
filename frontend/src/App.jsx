@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import Dashboard from './pages/Dashboard.jsx';
 import Trading from './pages/Trading.jsx';
 import Login from './pages/Login.jsx';
+import Register from './pages/Register.jsx';
 
 function App() {
   return (
@@ -12,12 +13,14 @@ function App() {
         <Link to="/trading">Trading</Link>
         {' | '}
         <Link to="/login">Login</Link>
+        {' | '}
+        <Link to="/register">Register</Link>
       </nav>
-
       <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/trading" element={<Trading />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
       </Routes>
     </BrowserRouter>
   );

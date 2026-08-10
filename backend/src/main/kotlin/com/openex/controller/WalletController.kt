@@ -2,6 +2,7 @@ package com.openex.controller
 
 import com.openex.service.JwtService
 import com.openex.service.WalletService
+import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestHeader
@@ -30,5 +31,20 @@ class WalletController(
         val username = jwtService.extractUsername(token)
         val newBalance = walletService.deposit(username, request.amount)
         return BalanceResponse(currency = "ZAR", balance = newBalance)
+    }
+
+    @GetMapping("/balance")
+    fun getBalance(@RequestHeader("Authorization") authHeader: String): BalanceResponse {
+        val token = authHeader.removePrefix("Bearer ").trim()
+        val username = jwtService.extractUsername(token)
+        val balance = walletService.getBalance(username)
+        return BalanceResponse(currency = "ZAR", balance = balance)
+    }
+
+    @GetMapping("/balances")
+    fun getAllBalances(@RequestHeader("Authorization") authHeader: String): Map<String, BigDecimal> {
+        val token = authHeader.removePrefix("Bearer ").trim()
+        val username = jwtService.extractUsername(token)
+        return walletService.getAllBalances(username)
     }
 }
