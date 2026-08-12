@@ -94,11 +94,10 @@ class OrderService(
         val buyOrder = if (incoming.side == OrderSide.BUY) incoming else candidate
         val sellOrder = if (incoming.side == OrderSide.SELL) incoming else candidate
 
-        val buyerAccount = accountRepository.findByUserId(buyOrder.userId)
-            ?: throw IllegalStateException("No wallet for buyer")
-        val sellerAccount = accountRepository.findByUserId(sellOrder.userId)
-            ?: throw IllegalStateException("No wallet for seller")
-
+       val buyerAccount = accountRepository.findByUserIdAndCurrency(buyOrder.userId, "ZAR")
+            ?: throw IllegalStateException("No ZAR wallet for buyer")
+        val sellerAccount = accountRepository.findByUserIdAndCurrency(sellOrder.userId, "ZAR")
+            ?: throw IllegalStateException("No ZAR wallet for seller")
         val totalCost = fillPrice.multiply(fillQty)
         // Simulated settlement: buyer's ZAR moves to the seller.
         // (A real exchange would also move the traded asset the other way —

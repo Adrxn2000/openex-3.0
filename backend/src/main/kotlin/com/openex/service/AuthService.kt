@@ -36,7 +36,9 @@ class AuthService(
         accountRepository.save(
             Account(id = UUID.randomUUID(), userId = user.id, currency = "ZAR")
         )
-
+        accountRepository.save(
+            Account(id = UUID.randomUUID(), userId = user.id, currency = "BTC")
+        )
         return jwtService.generateToken(user.username)
     }
 
