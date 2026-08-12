@@ -1,5 +1,3 @@
--- Day 8: every user needs a second account to hold simulated BTC,
--- alongside their existing ZAR account.
 INSERT INTO accounts (id, user_id, currency)
 SELECT gen_random_uuid(), user_id, 'BTC'
 FROM accounts
