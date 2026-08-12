@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { placeOrder } from '../api/client';
 import useAuthStore from '../store/authStore';
+import { useOrderBook } from '../hooks/useOrderBook';
 
 function Trading() {
   const token = useAuthStore((state) => state.token);
@@ -10,6 +11,7 @@ function Trading() {
   const [quantity, setQuantity] = useState('');
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
+  const orderBook = useOrderBook();
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -39,9 +41,16 @@ function Trading() {
     );
   }
 
+
+ 
   return (
     <div>
       <h1>Trading</h1>
+ <div>
+  <p style={{ color: 'green' }}>Best Bid: R{orderBook.bestBid}</p>
+  <p style={{ color: 'red' }}>Best Ask: R{orderBook.bestAsk}</p>
+</div>
+
       <form onSubmit={handleSubmit}>
         <div>
           <label>Side: </label>
