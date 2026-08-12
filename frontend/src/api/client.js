@@ -51,4 +51,16 @@ export function deposit(token, amount) {
     headers: { Authorization: `Bearer ${token}` },
     body: JSON.stringify({ amount }),
   });
+  
+}
+
+export function placeOrder(token, side, orderType, price, quantity) {
+  return request('/api/orders', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Idempotency-Key': crypto.randomUUID(),
+    },
+    body: JSON.stringify({ side, orderType, price, quantity }),
+  });
 }
