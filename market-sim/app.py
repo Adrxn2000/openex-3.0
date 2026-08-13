@@ -1,50 +1,55 @@
 from flask import Flask, jsonify, request
-from langchain_ollama import OllamaLLM
+from langchain_ollama import ChatOllama
 from langchain_core.prompts import PromptTemplate
+from langchain_core.tools import tool
 import numpy as np
 import pandas as pd
+import requests
 import time
 
 app = Flask(__name__)
 
-# Initialize the LLM with a strict timeout configuration (in seconds)
-# This prevents the service from hanging indefinitely if Ollama crashes
-llm = OllamaLLM(model="mistral", timeout=30)
+llm = ChatOllama(model="mistral", timeout=30)
 
-# Simplistic In-Memory Rate Limiting State (IP Address -> List of timestamps)
-RATE_LIMIT_WINDOW = 60  # Window size in seconds
-MAX_REQUESTS_PER_WINDOW = 10  # Max requests allowed per window
+RATE_LIMIT_WINDOW = 60
+MAX_REQUESTS_PER_WINDOW = 10
 rate_limit_store = {}
-
-# Simple static API key for internal microservice authentication
-# In a full production layout, this would be loaded via os.environ.get("CHAT_API_KEY")
 INTERNAL_API_KEY = "openex-secure-sim-key-2026"
 
-FINANCIAL_PERSONA = """You are a calm, professional financial assistant for OpenEx, 
-a simulated crypto exchange. You help users understand their trading activity and 
-market conditions. You never give real financial advice, and you always remind users 
-this is a simulated environment. Keep responses concise.
 
-User question: {question}
-Response:"""
+
+@tool
+def get_user_wallet_balance(auth_header_token: str) -> str:
+    """Fetch the user's live simulated wallet balance from the backend, given their raw Authorization header value."""
+    url = "http://localhost:8080/api/wallets/balance"
+    headers = {"Authorization": auth_header_token}
+    try:
+        response = requests.get(url, headers=headers, timeout=5)
+        if response.status_code == 200:
+            data = response.json()
+            balance = data.get("balance", "0.00")
+            currency = data.get("currency", "ZAR")
+            return "The user's actual wallet balance is " + str(balance) + " " + str(currency) + "."
+        elif response.status_code == 401:
+            return "Unauthorized. The user session token is invalid or expired."
+        else:
+            return "Could not fetch balance. Kotlin service returned status " + str(response.status_code) + "."
+    except requests.exceptions.RequestException as e:
+        return "Error connecting to Kotlin backend service: " + str(e)
+
+
+FINANCIAL_PERSONA = "You are a calm, professional financial assistant for OpenEx, a simulated crypto exchange. You help users understand their trading activity. You never give real financial advice, and you always remind users this is a simulated environment.\n\nUser question: {question}\nResponse:"
 
 chat_prompt = PromptTemplate(input_variables=["question"], template=FINANCIAL_PERSONA)
 
 
-def is_rate_limited(ip_address: str) -> bool:
-    """Helper function to clean old request windows and evaluate rate abuse."""
+def is_rate_limited(ip_address):
     current_time = time.time()
     if ip_address not in rate_limit_store:
         rate_limit_store[ip_address] = []
-    
-    # Filter out requests older than the current 60-second window
-    rate_limit_store[ip_address] = [
-        t for t in rate_limit_store[ip_address] if current_time - t < RATE_LIMIT_WINDOW
-    ]
-    
+    rate_limit_store[ip_address] = [t for t in rate_limit_store[ip_address] if current_time - t < RATE_LIMIT_WINDOW]
     if len(rate_limit_store[ip_address]) >= MAX_REQUESTS_PER_WINDOW:
         return True
-        
     rate_limit_store[ip_address].append(current_time)
     return False
 
@@ -66,36 +71,41 @@ def ticks():
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
-    # 1. Rate Limiting Check
     client_ip = request.remote_addr or "unknown"
     if is_rate_limited(client_ip):
         return jsonify({'error': 'Too many requests. Please try again after a minute.'}), 429
 
-    # 2. Authentication Check
-    auth_header = request.headers.get('X-API-Key')
-    if not auth_header or auth_header != INTERNAL_API_KEY:
+    api_key = request.headers.get('X-API-Key')
+    if not api_key or api_key != INTERNAL_API_KEY:
         return jsonify({'error': 'Unauthorized. Missing or invalid X-API-Key header.'}), 401
 
-    # 3. Request Payload Validation
+    user_jwt_auth = request.headers.get('Authorization', '')
     data = request.get_json() or {}
     question = data.get('question', '')
 
     if not question:
         return jsonify({'error': 'question field is required'}), 400
 
-    # 4. Error Handling & Timeout Wrapper around LLM Execution
     try:
-        prompt = chat_prompt.format(question=question)
-        response = llm.invoke(prompt)
-        return jsonify({'response': response})
-        
+        prompt_string = chat_prompt.format(question=question)
+        ai_message = llm.invoke(prompt_string)
+
+        q_lower = question.lower()
+        wants_balance = 'balance' in q_lower or 'money' in q_lower or 'funds' in q_lower
+
+        if user_jwt_auth and wants_balance:
+            tool_result = get_user_wallet_balance.invoke({"auth_header_token": user_jwt_auth})
+            final_prompt = prompt_string + "\n[System Tool Result: " + tool_result + "]\nAnswer the user based on this real balance tool result."
+            final_response = llm.invoke(final_prompt)
+            return jsonify({'response': final_response.content})
+
+        response_text = ai_message.content if hasattr(ai_message, 'content') else str(ai_message)
+        return jsonify({'response': response_text})
+
     except Exception as e:
-        # Graceful handling of network failures, model down issues, or timeouts
-        app.logger.error(f"LLM Invocation Failed: {str(e)}")
-        return jsonify({
-            'error': 'The AI assistant is temporarily unavailable or timed out. Please try again later.'
-        }), 503
+        app.logger.error("Agentic Execution Error: " + str(e))
+        return jsonify({'error': 'The trading assistant encountered an execution error. Please try again.'}), 503
 
 
 if __name__ == '__main__':
-    app.run(port=5000)
+    app.run(port=5001)
