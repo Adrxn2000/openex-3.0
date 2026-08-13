@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { getAllBalances } from '../api/client';
 import useAuthStore from '../store/authStore';
+import MarketChart from '../components/MarketChart';
+import ChatWidget from '../components/ChatWidget';
+
 
 function Dashboard() {
   const token = useAuthStore((state) => state.token);
@@ -32,6 +35,8 @@ function Dashboard() {
       {error && <p style={{ color: 'red' }}>{error}</p>}
       {balances && (
         <ul>
+          <MarketChart />
+          <ChatWidget />
           {Object.entries(balances).map(([currency, amount]) => (
             <li key={currency}>{currency}: {amount}</li>
           ))}
