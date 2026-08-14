@@ -54,3 +54,18 @@ The AI assistant service runs inside the `market-sim` directory using an isolate
 - **Authentication:** All requests communicating with `/api/chat` must supply a valid `X-API-Key` string inside the request header block.
 - **Rate-Limiting:** Enforces an explicit 10 requests per minute sliding window constraint per unique client machine IP address.
 - **Circuit Breaker Timeouts:** Built-in 30-second connection termination parameters are attached to the LangChain invoke sequence to prevent application pipeline gridlocks.
+
+## Running OpenEx 3.0
+
+1. `docker compose up -d` — starts Postgres and Redis
+2. `cd backend && ./gradlew.bat bootRun` — Kotlin backend on :8080
+3. `cd frontend && npm install && npm run dev` — React app on :5173
+4. `cd market-sim && python -m venv venv && .\venv\Scripts\activate && pip install flask pandas numpy langchain langchain-community langchain-ollama`
+5. Install Ollama (https://ollama.com), then `ollama pull mistral`
+6. `python app.py` — Python AI/market service on :5001
+
+Visit http://localhost:5173 to use the app.
+
+### Known limitations
+- Dockerfiles for backend/frontend/market-sim not yet built — all three run locally via the steps above, not fully containerized
+- Ollama/model weights must be installed separately on each machine (not part of `docker compose`)
