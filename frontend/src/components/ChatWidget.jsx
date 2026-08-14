@@ -7,11 +7,10 @@ function ChatWidget() {
   const [reply, setReply] = useState('');
 
   async function ask() {
-    const res = await fetch('http://localhost:5001/api/chat', {
+    const res = await fetch('http://localhost:8080/api/assistant/chat', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-API-Key': 'openex-secure-sim-key-2026',
         Authorization: token ? `Bearer ${token}` : '',
       },
       body: JSON.stringify({ question }),
