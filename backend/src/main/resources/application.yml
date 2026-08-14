@@ -25,6 +25,6 @@ jwt:
   secret: "change-this-to-a-long-random-string-before-any-real-deployment-32chars-min"
   expiration-ms: 3600000
 
-  market-sim:
+market-sim:
   url: http://localhost:5001
   api-key: openex-secure-sim-key-2026
