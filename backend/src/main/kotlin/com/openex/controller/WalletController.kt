@@ -30,7 +30,7 @@ class WalletController(
         val token = authHeader.removePrefix("Bearer ").trim()
         val username = jwtService.extractUsername(token)
         val newBalance = walletService.deposit(username, request.amount)
-        return BalanceResponse(currency = "ZAR", balance = newBalance)
+        return BalanceResponse(currency = "USD", balance = newBalance)
     }
 
     @GetMapping("/balance")
@@ -38,7 +38,7 @@ class WalletController(
         val token = authHeader.removePrefix("Bearer ").trim()
         val username = jwtService.extractUsername(token)
         val balance = walletService.getBalance(username)
-        return BalanceResponse(currency = "ZAR", balance = balance)
+        return BalanceResponse(currency = "USD", balance = balance)
     }
 
     @GetMapping("/balances")

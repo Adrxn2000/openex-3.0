@@ -1,4 +1,5 @@
 from flask import Flask, jsonify, request
+from flask_cors import CORS
 from langchain_ollama import ChatOllama
 from langchain_core.prompts import PromptTemplate
 from langchain_core.tools import tool
@@ -8,6 +9,7 @@ import requests
 import time
 
 app = Flask(__name__)
+CORS(app, origins=["http://localhost:5173"])
 
 llm = ChatOllama(model="mistral", timeout=30)
 

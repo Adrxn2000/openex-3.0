@@ -1,0 +1,1 @@
+UPDATE accounts SET currency = 'USD' WHERE currency = 'ZAR';

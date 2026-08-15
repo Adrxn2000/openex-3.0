@@ -34,7 +34,7 @@ class AuthService(
         )
 
        accountRepository.save(
-            Account(id = UUID.randomUUID(), userId = user.id, currency = "ZAR")
+            Account(id = UUID.randomUUID(), userId = user.id, currency = "USD")
         )
         accountRepository.save(
             Account(id = UUID.randomUUID(), userId = user.id, currency = "BTC")

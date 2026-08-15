@@ -69,6 +69,7 @@ class OrderService(
         for (candidate in opposite) {
             if (incoming.remainingQty <= BigDecimal.ZERO) break
             if (candidate.id == incoming.id) continue
+            if (candidate.userId == incoming.userId) continue
             if (!pricesCross(incoming, candidate)) continue
 
             val fillQty = minOf(incoming.remainingQty, candidate.remainingQty)
@@ -94,12 +95,12 @@ class OrderService(
         val buyOrder = if (incoming.side == OrderSide.BUY) incoming else candidate
         val sellOrder = if (incoming.side == OrderSide.SELL) incoming else candidate
 
-       val buyerAccount = accountRepository.findByUserIdAndCurrency(buyOrder.userId, "ZAR")
-            ?: throw IllegalStateException("No ZAR wallet for buyer")
-        val sellerAccount = accountRepository.findByUserIdAndCurrency(sellOrder.userId, "ZAR")
-            ?: throw IllegalStateException("No ZAR wallet for seller")
+       val buyerAccount = accountRepository.findByUserIdAndCurrency(buyOrder.userId, "USD")
+            ?: throw IllegalStateException("No USD wallet for buyer")
+        val sellerAccount = accountRepository.findByUserIdAndCurrency(sellOrder.userId, "USD")
+            ?: throw IllegalStateException("No USD wallet for seller")
         val totalCost = fillPrice.multiply(fillQty)
-        // Simulated settlement: buyer's ZAR moves to the seller.
+        // Simulated settlement: buyer's USD moves to the seller.
         // (A real exchange would also move the traded asset the other way —
         // that's out of scope for this simplified simulation.)
         ledgerService.transfer(buyerAccount.id, sellerAccount.id, totalCost)

@@ -47,8 +47,8 @@ function Trading() {
     <div>
       <h1>Trading</h1>
  <div>
-  <p style={{ color: 'green' }}>Best Bid: R{orderBook.bestBid}</p>
-  <p style={{ color: 'red' }}>Best Ask: R{orderBook.bestAsk}</p>
+  <p style={{ color: 'green' }}>Best Bid: ${orderBook.bestBid}</p>
+  <p style={{ color: 'red' }}>Best Ask: ${orderBook.bestAsk}</p>
 </div>
 
       <form onSubmit={handleSubmit}>
@@ -70,7 +70,7 @@ function Trading() {
 
         {orderType === 'LIMIT' && (
           <div>
-            <label>Price (ZAR): </label>
+            <label>Price (USD): </label>
             <input
               type="number"
               step="0.01"

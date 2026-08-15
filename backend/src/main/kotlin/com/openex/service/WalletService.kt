@@ -19,8 +19,8 @@ class WalletService(
     fun deposit(username: String, amount: BigDecimal): BigDecimal {
         val user = userRepository.findByUsername(username)
             ?: throw IllegalArgumentException("Unknown user")
-        val account = accountRepository.findByUserIdAndCurrency(user.id, "ZAR")
-            ?: throw IllegalStateException("No ZAR wallet account found for user")
+        val account = accountRepository.findByUserIdAndCurrency(user.id, "USD")
+            ?: throw IllegalStateException("No USD wallet account found for user")
         ledgerService.transfer(FAUCET_ACCOUNT_ID, account.id, amount)
         return ledgerService.balanceOf(account.id)
     }
@@ -28,8 +28,8 @@ class WalletService(
     fun getBalance(username: String): BigDecimal {
         val user = userRepository.findByUsername(username)
             ?: throw IllegalArgumentException("Unknown user")
-        val account = accountRepository.findByUserIdAndCurrency(user.id, "ZAR")
-            ?: throw IllegalStateException("No ZAR wallet account found for user")
+        val account = accountRepository.findByUserIdAndCurrency(user.id, "USD")
+            ?: throw IllegalStateException("No USD wallet account found for user")
         return ledgerService.balanceOf(account.id)
     }
 

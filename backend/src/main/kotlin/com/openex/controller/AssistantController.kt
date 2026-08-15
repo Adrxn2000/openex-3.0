@@ -9,8 +9,14 @@ import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.client.RestTemplate
+import com.fasterxml.jackson.annotation.JsonCreator
+import com.fasterxml.jackson.annotation.JsonProperty
 
-data class ChatRequest(val question: String)
+data class ChatRequest @JsonCreator constructor(
+    @JsonProperty("question") val question: String
+)
+
+
 
 @RestController
 @RequestMapping("/api/assistant")
