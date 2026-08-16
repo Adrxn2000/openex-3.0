@@ -11,7 +11,7 @@ import time
 app = Flask(__name__)
 CORS(app, origins=["http://localhost:5173"])
 
-llm = ChatOllama(model="mistral", timeout=30)
+llm = ChatOllama(model="tinyllama", timeout=30)
 
 RATE_LIMIT_WINDOW = 60
 MAX_REQUESTS_PER_WINDOW = 10

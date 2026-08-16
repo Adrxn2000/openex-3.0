@@ -9,14 +9,13 @@ import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.client.RestTemplate
+import org.springframework.web.client.HttpStatusCodeException
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty
 
 data class ChatRequest @JsonCreator constructor(
     @JsonProperty("question") val question: String
 )
-
-
 
 @RestController
 @RequestMapping("/api/assistant")
@@ -38,10 +37,16 @@ class AssistantController(
 
         val entity = HttpEntity(mapOf("question" to request.question), headers)
 
-        return restTemplate.postForObject(
-            "$marketSimUrl/api/chat",
-            entity,
-            Map::class.java
-        ) as Map<String, Any>
+        return try {
+            restTemplate.postForObject(
+                "$marketSimUrl/api/chat",
+                entity,
+                Map::class.java
+            ) as Map<String, Any>
+        } catch (e: HttpStatusCodeException) {
+            mapOf("response" to "Assistant unavailable right now: ${e.responseBodyAsString}")
+        } catch (e: Exception) {
+            mapOf("response" to "Could not reach the AI service. Make sure market-sim is running.")
+        }
     }
 }
