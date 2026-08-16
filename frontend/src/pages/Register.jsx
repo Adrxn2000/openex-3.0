@@ -24,6 +24,7 @@ function Register() {
 
   return (
     <div>
+      <div className="page center-card">
       <h1>Register</h1>
       <form onSubmit={handleSubmit}>
         <div>
@@ -37,6 +38,7 @@ function Register() {
         <button type="submit">Register</button>
       </form>
       {error && <p style={{ color: 'red' }}>{error}</p>}
+    </div>
     </div>
   );
 }

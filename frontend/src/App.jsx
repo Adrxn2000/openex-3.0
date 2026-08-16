@@ -8,13 +8,13 @@ function App() {
   return (
     <BrowserRouter>
       <nav>
-        <Link to="/">Dashboard</Link>
-        {' | '}
-        <Link to="/trading">Trading</Link>
-        {' | '}
-        <Link to="/login">Login</Link>
-        {' | '}
-        <Link to="/register">Register</Link>
+        <div className="nav-brand">Open<span>Ex</span></div>
+        <div className="nav-links">
+          <Link to="/">Dashboard</Link>
+          <Link to="/trading">Trading</Link>
+          <Link to="/login">Login</Link>
+          <Link to="/register">Register</Link>
+        </div>
       </nav>
       <Routes>
         <Route path="/" element={<Dashboard />} />

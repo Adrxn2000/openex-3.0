@@ -1,16 +1,28 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import useAuthStore from '../store/authStore';
 
 function ChatWidget() {
   const token = useAuthStore((state) => state.token);
+  const [open, setOpen] = useState(false);
   const [question, setQuestion] = useState('');
-  const [reply, setReply] = useState('');
+  const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
+  const scrollRef = useRef(null);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages, loading]);
 
   async function ask() {
-    if (!question.trim()) return;
+    const q = question.trim();
+    if (!q || loading) return;
+
+    setMessages((prev) => [...prev, { role: 'user', text: q }]);
+    setQuestion('');
     setLoading(true);
-    setReply('');
+
     try {
       const res = await fetch('http://localhost:8080/api/assistant/chat', {
         method: 'POST',
@@ -18,91 +30,57 @@ function ChatWidget() {
           'Content-Type': 'application/json',
           Authorization: token ? `Bearer ${token}` : '',
         },
-        body: JSON.stringify({ question }),
+        body: JSON.stringify({ question: q }),
       });
       const data = await res.json();
-      setReply(data.response || data.error || 'No response');
+      const reply = data.response || data.error || 'No response';
+      setMessages((prev) => [...prev, { role: 'assistant', text: reply }]);
     } catch (err) {
-      setReply('Could not reach the assistant. Is the AI service running?');
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', text: 'Could not reach the assistant. Is the AI service running?' },
+      ]);
     } finally {
       setLoading(false);
     }
   }
 
+  if (!open) {
+    return (
+      <button className="chat-launcher" onClick={() => setOpen(true)} aria-label="Open chat">
+        💬
+      </button>
+    );
+  }
+
   return (
-    <div
-      style={{
-        position: 'fixed',
-        bottom: 20,
-        right: 20,
-        width: 320,
-        background: '#1E293B',
-        borderRadius: 14,
-        padding: 18,
-        boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
-        border: '1px solid #334155',
-      }}
-    >
-      <div style={{ color: '#FFFFFF', fontWeight: 700, fontSize: 14, marginBottom: 10 }}>
-        🤖 Trading Assistant
+    <div className="chat-panel">
+      <div className="chat-header">
+        <div className="title">
+          <span className="dot"></span>
+          Trading Assistant
+        </div>
+        <button className="chat-close" onClick={() => setOpen(false)}>✕</button>
       </div>
 
-      {reply && (
-        <div
-          style={{
-            background: '#0F172A',
-            borderRadius: 8,
-            padding: 10,
-            fontSize: 13,
-            color: '#F1F5F9',
-            marginBottom: 10,
-            maxHeight: 160,
-            overflowY: 'auto',
-          }}
-        >
-          {reply}
-        </div>
-      )}
+      <div className="chat-messages" ref={scrollRef}>
+        {messages.length === 0 && (
+          <div className="chat-empty">Ask me about trading, or your balance.</div>
+        )}
+        {messages.map((m, i) => (
+          <div key={i} className={`chat-bubble ${m.role}`}>{m.text}</div>
+        ))}
+        {loading && <div className="chat-bubble typing">Thinking...</div>}
+      </div>
 
-      {loading && (
-        <div style={{ fontSize: 12, color: '#94A3B8', marginBottom: 10 }}>
-          Thinking... this can take up to a minute locally.
-        </div>
-      )}
-
-      <div style={{ display: 'flex', gap: 8 }}>
+      <div className="chat-input-row">
         <input
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && ask()}
-          placeholder="Ask about trading..."
-          style={{
-            flex: 1,
-            padding: '8px 10px',
-            borderRadius: 8,
-            border: '1px solid #334155',
-            background: '#0F172A',
-            color: '#F1F5F9',
-            fontSize: 13,
-          }}
+          placeholder="Type a message..."
         />
-        <button
-          onClick={ask}
-          disabled={loading}
-          style={{
-            background: '#10B981',
-            color: '#0F172A',
-            border: 'none',
-            borderRadius: 8,
-            padding: '8px 14px',
-            fontWeight: 700,
-            fontSize: 13,
-            cursor: loading ? 'not-allowed' : 'pointer',
-            opacity: loading ? 0.6 : 1,
-          }}
-        >
-          Send
-        </button>
+        <button onClick={ask} disabled={loading}>Send</button>
       </div>
     </div>
   );

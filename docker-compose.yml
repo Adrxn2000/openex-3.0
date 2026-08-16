@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   postgres:
     image: postgres:16-alpine
@@ -29,8 +27,32 @@ services:
       timeout: 5s
       retries: 5
 
-  # backend, frontend, and ai-service will be added in later days
-  # once their Dockerfiles exist (week 1 = backend only, run via ./gradlew bootRun locally)
+  backend:
+    image: openex-backend
+    container_name: openex-backend
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/openex
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  market-sim:
+    image: openex-market-sim
+    container_name: openex-market-sim
+    ports:
+      - "5001:5001"
+
+  frontend:
+    image: openex-frontend
+    container_name: openex-frontend
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
 
 volumes:
   postgres-data:

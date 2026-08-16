@@ -20,28 +20,40 @@ function MarketChart() {
     return () => clearInterval(interval);
   }, []);
 
+const prices = ticks.map((t) => t.price);
+  const trendUp = prices.length > 1 && prices[prices.length - 1] >= prices[0];
+  const lineColor = trendUp ? '#10B981' : '#EF4444';
+
   const data = {
     labels: ticks.map((_, i) => i),
     datasets: [
       {
-        label: 'Price (USD)',
-        data: ticks.map((t) => t.price),
-        borderColor: '#10B981',
-        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+        label: 'BTC/USD',
+        data: prices,
+        borderColor: lineColor,
+        backgroundColor: trendUp ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.08)',
         fill: true,
-        tension: 0.3,
+        tension: 0.15,
         pointRadius: 0,
         borderWidth: 2,
       },
+      {
+        label: '10-tick MA',
+        data: ticks.map((t) => t.moving_avg_10 || null),
+        borderColor: '#64748B',
+        borderWidth: 1,
+        borderDash: [4, 4],
+        pointRadius: 0,
+        fill: false,
+      },
     ],
   };
-
   const options = {
     responsive: true,
     plugins: { legend: { labels: { color: '#94A3B8' } } },
     scales: {
       x: { ticks: { color: '#64748B' }, grid: { color: '#1E293B' } },
-      y: { ticks: { color: '#64748B' }, grid: { color: '#1E293B' } },
+       y: { ticks: { color: '#64748B', callback: (v) => '$' + v.toLocaleString() }, grid: { color: '#1E293B' } },
     },
   };
 

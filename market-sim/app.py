@@ -56,8 +56,10 @@ def is_rate_limited(ip_address):
     return False
 
 
-def generate_ticks(n=200, start_price=500000):
-    returns = np.random.normal(loc=0.0002, scale=0.01, size=n)
+def generate_ticks(n=300, start_price=45000):
+    returns = np.random.normal(loc=0.0001, scale=0.006, size=n)
+    volatility_clusters = np.random.choice([1, 1, 1, 3], size=n)
+    returns = returns * volatility_clusters
     prices = start_price * (1 + returns).cumprod()
     df = pd.DataFrame({'price': prices})
     df['moving_avg_10'] = df['price'].rolling(10).mean()
@@ -110,4 +112,4 @@ def chat():
 
 
 if __name__ == '__main__':
-    app.run(port=5001)
+    app.run(host='0.0.0.0', port=5001)

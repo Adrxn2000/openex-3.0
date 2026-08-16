@@ -77,6 +77,20 @@ available for CPU-only inference on the development machine). On higher-spec har
 swap the model name in `market-sim/app.py`:
 ```python
 llm = ChatOllama(model="mistral", timeout=30)
+
+### Docker Build Note
+The backend Dockerfile copies a pre-built jar rather than compiling inside the
+container — a deliberate trade-off made due to slow network conditions during
+development (compiling fresh inside the container repeatedly failed to complete
+in reasonable time). Before running `docker build ./backend`, build the jar locally:
+```bash
+cd backend
+./gradlew.bat bootJar    # Windows
+# ./gradlew bootJar      # macOS/Linux
+```
+On a faster connection, this could be converted back to a full multi-stage build
+that compiles from source inside the container — the original Dockerfile approach
+attempted first, kept here as a note for future improvement.
 ```
 
 ## API Overview

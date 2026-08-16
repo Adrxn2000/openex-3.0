@@ -25,6 +25,7 @@ function Login() {
 
   return (
     <div>
+       <div className="page center-card">
       <h1>Login</h1>
       <p>Currently logged in as: {currentUsername ?? 'nobody'}</p>
       <form onSubmit={handleSubmit}>
@@ -39,6 +40,7 @@ function Login() {
         <button type="submit">Login</button>
       </form>
       {error && <p style={{ color: 'red' }}>{error}</p>}
+    </div>
     </div>
   );
 }

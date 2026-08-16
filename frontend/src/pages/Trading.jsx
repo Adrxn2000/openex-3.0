@@ -17,7 +17,6 @@ function Trading() {
     e.preventDefault();
     setError('');
     setResult(null);
-
     try {
       const order = await placeOrder(
         token,
@@ -34,79 +33,72 @@ function Trading() {
 
   if (!token) {
     return (
-      <div>
+      <div className="page">
         <h1>Trading</h1>
         <p>You're not logged in. Go to the Login page first.</p>
       </div>
     );
   }
 
-
- 
   return (
-    <div>
+    <div className="page">
       <h1>Trading</h1>
- <div>
-  <p style={{ color: 'green' }}>Best Bid: ${orderBook.bestBid}</p>
-  <p style={{ color: 'red' }}>Best Ask: ${orderBook.bestAsk}</p>
-</div>
+      <p className="subtitle">Place a limit or market order</p>
 
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label>Side: </label>
-          <select value={side} onChange={(e) => setSide(e.target.value)}>
-            <option value="BUY">Buy</option>
-            <option value="SELL">Sell</option>
-          </select>
-        </div>
+      <div className="ticker-row">
+        <div className="ticker-pill bid">Best Bid &nbsp; ${orderBook.bestBid}</div>
+        <div className="ticker-pill ask">Best Ask &nbsp; ${orderBook.bestAsk}</div>
+      </div>
 
-        <div>
-          <label>Order Type: </label>
-          <select value={orderType} onChange={(e) => setOrderType(e.target.value)}>
-            <option value="LIMIT">Limit</option>
-            <option value="MARKET">Market</option>
-          </select>
-        </div>
-
-        {orderType === 'LIMIT' && (
+      <div className="grid-2">
+        <form onSubmit={handleSubmit}>
           <div>
-            <label>Price (USD): </label>
-            <input
-              type="number"
-              step="0.01"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              required
-            />
+            <label>Side</label>
+            <select value={side} onChange={(e) => setSide(e.target.value)}>
+              <option value="BUY">Buy</option>
+              <option value="SELL">Sell</option>
+            </select>
           </div>
-        )}
 
-        <div>
-          <label>Quantity: </label>
-          <input
-            type="number"
-            step="0.00000001"
-            value={quantity}
-            onChange={(e) => setQuantity(e.target.value)}
-            required
-          />
+          <div>
+            <label>Order Type</label>
+            <select value={orderType} onChange={(e) => setOrderType(e.target.value)}>
+              <option value="LIMIT">Limit</option>
+              <option value="MARKET">Market</option>
+            </select>
+          </div>
+
+          {orderType === 'LIMIT' && (
+            <div>
+              <label>Price (USD)</label>
+              <input type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} required />
+            </div>
+          )}
+
+          <div>
+            <label>Quantity</label>
+            <input type="number" step="0.00000001" value={quantity} onChange={(e) => setQuantity(e.target.value)} required />
+          </div>
+
+          <button type="submit">Place Order</button>
+
+          {error && <div className="error-box">{error}</div>}
+        </form>
+
+        <div className="card">
+          <h3 style={{ marginTop: 0 }}>Last Order</h3>
+          {!result && <p>No order placed yet this session.</p>}
+          {result && (
+            <div className="result-card">
+              <p style={{ margin: '0 0 8px' }}>
+                <span className={`status-badge ${result.status}`}>{result.status}</span>
+              </p>
+              <p style={{ margin: '4px 0', fontSize: 13 }}>ID: {result.id}</p>
+              <p style={{ margin: '4px 0', fontSize: 13 }}>Remaining Qty: {result.remainingQty}</p>
+            </div>
+          )}
         </div>
-
-        <button type="submit">Place Order</button>
-      </form>
-
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-
-      {result && (
-        <div>
-          <p>Order placed:</p>
-          <ul>
-            <li>ID: {result.id}</li>
-            <li>Status: {result.status}</li>
-            <li>Remaining Qty: {result.remainingQty}</li>
-          </ul>
-        </div>
-      )}
+      </div>
     </div>
   );
 }
