@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { placeOrder } from '../api/client';
 import useAuthStore from '../store/authStore';
 import { useOrderBook } from '../hooks/useOrderBook';
+import AnimatedNumber from '../components/AnimatedNumber';
+import AuthGate from '../components/AuthGate';
 
 function Trading() {
   const token = useAuthStore((state) => state.token);
@@ -32,12 +34,7 @@ function Trading() {
   }
 
   if (!token) {
-    return (
-      <div className="page">
-        <h1>Trading</h1>
-        <p>You're not logged in. Go to the Login page first.</p>
-      </div>
-    );
+    return <AuthGate title="Trading requires an account" message="Log in to place simulated orders." />;
   }
 
   return (
@@ -46,18 +43,34 @@ function Trading() {
       <p className="subtitle">Place a limit or market order</p>
 
       <div className="ticker-row">
-        <div className="ticker-pill bid">Best Bid &nbsp; ${orderBook.bestBid}</div>
-        <div className="ticker-pill ask">Best Ask &nbsp; ${orderBook.bestAsk}</div>
+        <div className="ticker-pill bid">
+          Best Bid &nbsp; <AnimatedNumber value={Number(orderBook.bestBid) || 0} decimals={2} prefix="$" />
+        </div>
+        <div className="ticker-pill ask">
+          Best Ask &nbsp; <AnimatedNumber value={Number(orderBook.bestAsk) || 0} decimals={2} prefix="$" />
+        </div>
       </div>
 
       <div className="grid-2">
         <form onSubmit={handleSubmit}>
           <div>
             <label>Side</label>
-            <select value={side} onChange={(e) => setSide(e.target.value)}>
-              <option value="BUY">Buy</option>
-              <option value="SELL">Sell</option>
-            </select>
+            <div className="segmented">
+              <button
+                type="button"
+                className={`buy ${side === 'BUY' ? 'active' : ''}`}
+                onClick={() => setSide('BUY')}
+              >
+                Buy
+              </button>
+              <button
+                type="button"
+                className={`sell ${side === 'SELL' ? 'active' : ''}`}
+                onClick={() => setSide('SELL')}
+              >
+                Sell
+              </button>
+            </div>
           </div>
 
           <div>
@@ -80,7 +93,9 @@ function Trading() {
             <input type="number" step="0.00000001" value={quantity} onChange={(e) => setQuantity(e.target.value)} required />
           </div>
 
-          <button type="submit">Place Order</button>
+          <button type="submit" className={side === 'BUY' ? 'btn-buy' : 'btn-sell'}>
+            Place {side === 'BUY' ? 'Buy' : 'Sell'} Order
+          </button>
 
           {error && <div className="error-box">{error}</div>}
         </form>

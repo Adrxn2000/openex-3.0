@@ -33,7 +33,8 @@ services:
     ports:
       - "8080:8080"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/openex
+      - MARKET_SIM_URL=http://openex-market-sim:5001
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/openex
     depends_on:
       postgres:
         condition: service_healthy
@@ -45,6 +46,9 @@ services:
     container_name: openex-market-sim
     ports:
       - "5001:5001"
+    environment:
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - BACKEND_URL=http://openex-backend:8080
 
   frontend:
     image: openex-frontend

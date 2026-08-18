@@ -11,7 +11,11 @@ import time
 app = Flask(__name__)
 CORS(app, origins=["http://localhost:5173"])
 
-llm = ChatOllama(model="tinyllama", timeout=30)
+import os
+
+OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
+BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:8080")
+llm = ChatOllama(model="tinyllama", timeout=30, base_url=OLLAMA_BASE_URL, keep_alive="30m", num_predict=150)
 
 RATE_LIMIT_WINDOW = 60
 MAX_REQUESTS_PER_WINDOW = 10
@@ -23,7 +27,7 @@ INTERNAL_API_KEY = "openex-secure-sim-key-2026"
 @tool
 def get_user_wallet_balance(auth_header_token: str) -> str:
     """Fetch the user's live simulated wallet balance from the backend, given their raw Authorization header value."""
-    url = "http://localhost:8080/api/wallets/balance"
+    url = BACKEND_URL + "/api/wallets/balance"
     headers = {"Authorization": auth_header_token}
     try:
         response = requests.get(url, headers=headers, timeout=5)
@@ -40,7 +44,16 @@ def get_user_wallet_balance(auth_header_token: str) -> str:
         return "Error connecting to Kotlin backend service: " + str(e)
 
 
-FINANCIAL_PERSONA = "You are a calm, professional financial assistant for OpenEx, a simulated crypto exchange. You help users understand their trading activity. You never give real financial advice, and you always remind users this is a simulated environment.\n\nUser question: {question}\nResponse:"
+FINANCIAL_PERSONA = """You are OpenEx Assistant for a simulated crypto exchange. Keep answers short and casual, matching the user's tone.
+
+User: hi
+Assistant: Hey! Ask me about your trades, balance, or how OpenEx works.
+
+User: what's my balance?
+Assistant: Let me check that for you.
+
+User: {question}
+Assistant:"""
 
 chat_prompt = PromptTemplate(input_variables=["question"], template=FINANCIAL_PERSONA)
 

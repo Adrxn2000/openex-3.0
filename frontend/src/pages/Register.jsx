@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { register } from '../api/client';
 import useAuthStore from '../store/authStore';
 
@@ -23,22 +23,26 @@ function Register() {
   }
 
   return (
-    <div>
-      <div className="page center-card">
-      <h1>Register</h1>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label>Username: </label>
-          <input value={username} onChange={(e) => setUsername(e.target.value)} />
-        </div>
-        <div>
-          <label>Password: </label>
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-        </div>
-        <button type="submit">Register</button>
-      </form>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-    </div>
+    <div className="page">
+      <div className="center-card">
+        <div className="brand-mark">Open<span>Ex</span></div>
+        <p className="subtitle" style={{ marginBottom: 4 }}>Create your account</p>
+        <form onSubmit={handleSubmit}>
+          <div>
+            <label>Username</label>
+            <input value={username} onChange={(e) => setUsername(e.target.value)} />
+          </div>
+          <div>
+            <label>Password</label>
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+          </div>
+          <button type="submit">Register</button>
+          {error && <div className="error-box">{error}</div>}
+        </form>
+        <p className="switch-link">
+          Already have an account? <Link to="/login">Login</Link>
+        </p>
+      </div>
     </div>
   );
 }

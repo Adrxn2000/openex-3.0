@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { login as loginApi } from '../api/client';
 import useAuthStore from '../store/authStore';
 
@@ -24,23 +24,28 @@ function Login() {
   }
 
   return (
-    <div>
-       <div className="page center-card">
-      <h1>Login</h1>
-      <p>Currently logged in as: {currentUsername ?? 'nobody'}</p>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label>Username: </label>
-          <input value={username} onChange={(e) => setUsername(e.target.value)} />
-        </div>
-        <div>
-          <label>Password: </label>
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-        </div>
-        <button type="submit">Login</button>
-      </form>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-    </div>
+    <div className="page">
+      <div className="center-card">
+        <div className="brand-mark">Open<span>Ex</span></div>
+        <p className="subtitle" style={{ marginBottom: 4 }}>
+          {currentUsername ? `Signed in as ${currentUsername}` : 'Sign in to your account'}
+        </p>
+        <form onSubmit={handleSubmit}>
+          <div>
+            <label>Username</label>
+            <input value={username} onChange={(e) => setUsername(e.target.value)} />
+          </div>
+          <div>
+            <label>Password</label>
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+          </div>
+          <button type="submit">Login</button>
+          {error && <div className="error-box">{error}</div>}
+        </form>
+        <p className="switch-link">
+          Don't have an account? <Link to="/register">Register</Link>
+        </p>
+      </div>
     </div>
   );
 }
