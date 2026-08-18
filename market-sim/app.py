@@ -34,7 +34,7 @@ def get_user_wallet_balance(auth_header_token: str) -> str:
         if response.status_code == 200:
             data = response.json()
             balance = data.get("balance", "0.00")
-            currency = data.get("currency", "ZAR")
+            currency = data.get("currency", "USD")
             return "The user's actual wallet balance is " + str(balance) + " " + str(currency) + "."
         elif response.status_code == 401:
             return "Unauthorized. The user session token is invalid or expired."
