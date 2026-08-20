@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { getAllBalances } from '../api/client';
 import useAuthStore from '../store/authStore';
 import MarketChart from '../components/MarketChart';
@@ -9,19 +9,39 @@ import AnimatedNumber from '../components/AnimatedNumber';
 function Dashboard() {
   const token = useAuthStore((state) => state.token);
   const username = useAuthStore((state) => state.username);
+  const logout = useAuthStore((state) => state.logout);
+  const navigate = useNavigate();
   const [balances, setBalances] = useState(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
     if (!token) return;
+    let cancelled = false;
+
     function load() {
       getAllBalances(token)
-        .then((data) => setBalances(data))
-        .catch((err) => setError(err.message));
+        .then((data) => {
+          if (!cancelled) setBalances(data);
+        })
+        .catch((err) => {
+          if (cancelled) return;
+          // Expired or invalid token: stop polling and send the user
+          // back to log in, instead of retrying forever every 8s.
+          if (err.status === 401) {
+            logout();
+            navigate('/login');
+            return;
+          }
+          setError(err.message);
+        });
     }
+
     load();
     const interval = setInterval(load, 8000);
-    return () => clearInterval(interval);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
   }, [token]);
 
   if (!token) {

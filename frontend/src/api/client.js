@@ -1,3 +1,5 @@
+import useAuthStore from "../store/authStore";
+
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
 async function request(path, options = {}) {
@@ -11,7 +13,17 @@ async function request(path, options = {}) {
 
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
-    throw new Error(body.message || `Request failed with status ${response.status}`);
+    // Attach the HTTP status so callers can tell an expired/invalid
+    // token (401) apart from any other failure and react accordingly
+    // (e.g. force a logout) instead of silently retrying forever.
+    const error = new Error(body.message || `Request failed with status ${response.status}`);
+    error.status = response.status;
+
+    if (response.status === 401) {
+      useAuthStore.getState().logout();
+    }
+
+    throw error;
   }
 
   return response.json();
@@ -51,7 +63,6 @@ export function deposit(token, amount) {
     headers: { Authorization: `Bearer ${token}` },
     body: JSON.stringify({ amount }),
   });
-  
 }
 
 export function placeOrder(token, side, orderType, price, quantity) {

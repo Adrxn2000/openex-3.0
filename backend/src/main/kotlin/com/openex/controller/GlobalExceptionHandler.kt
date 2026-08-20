@@ -1,6 +1,8 @@
 package com.openex.controller
 
 import com.openex.service.InvalidCredentialsException
+import io.jsonwebtoken.ExpiredJwtException
+import io.jsonwebtoken.JwtException
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.ExceptionHandler
@@ -18,4 +20,12 @@ class GlobalExceptionHandler {
     @ExceptionHandler(IllegalArgumentException::class)
     fun handleIllegalArgument(ex: IllegalArgumentException): ResponseEntity<ErrorResponse> =
         ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ErrorResponse(ex.message ?: "Invalid request"))
+
+    @ExceptionHandler(ExpiredJwtException::class)
+    fun handleExpiredJwt(): ResponseEntity<ErrorResponse> =
+        ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ErrorResponse("Token expired"))
+
+    @ExceptionHandler(JwtException::class)
+    fun handleInvalidJwt(): ResponseEntity<ErrorResponse> =
+        ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ErrorResponse("Invalid token"))
 }
