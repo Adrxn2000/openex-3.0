@@ -7,11 +7,11 @@ import numpy as np
 import pandas as pd
 import requests
 import time
+import os
 
 app = Flask(__name__)
-CORS(app, origins=["http://localhost:5173"])
+CORS(app, origins=["http://localhost:5174"])
 
-import os
 
 OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
 BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:8080")
@@ -23,6 +23,19 @@ rate_limit_store = {}
 INTERNAL_API_KEY = "openex-secure-sim-key-2026"
 
 
+FINANCIAL_PERSONA = """You are OpenEx Assistant for a simulated crypto exchange. Keep answers short and casual, 
+matching the user's tone.
+
+User: hi
+Assistant: Hey! Ask me about your trades, balance, or how OpenEx works.
+
+User: what's my balance?
+Assistant: Let me check that for you.
+
+User: {question}
+Assistant:"""
+
+chat_prompt = PromptTemplate(input_variables=["question"], template=FINANCIAL_PERSONA)
 
 @tool
 def get_user_wallet_balance(auth_header_token: str) -> str:
@@ -44,18 +57,6 @@ def get_user_wallet_balance(auth_header_token: str) -> str:
         return "Error connecting to Kotlin backend service: " + str(e)
 
 
-FINANCIAL_PERSONA = """You are OpenEx Assistant for a simulated crypto exchange. Keep answers short and casual, matching the user's tone.
-
-User: hi
-Assistant: Hey! Ask me about your trades, balance, or how OpenEx works.
-
-User: what's my balance?
-Assistant: Let me check that for you.
-
-User: {question}
-Assistant:"""
-
-chat_prompt = PromptTemplate(input_variables=["question"], template=FINANCIAL_PERSONA)
 
 
 def is_rate_limited(ip_address):

@@ -1,23 +1,32 @@
-import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
 import Dashboard from './pages/Dashboard.jsx';
 import Trading from './pages/Trading.jsx';
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
 import NotFound from './pages/NotFound.jsx';
 import TickerTape from './components/TickerTape.jsx';
+import useAuthStore from './store/authStore';
 
-const NAV_ITEMS = [
+const BASE_NAV_ITEMS = [
   { to: '/', label: 'Dashboard' },
   { to: '/trading', label: 'Trading' },
-  { to: '/login', label: 'Login' },
-  { to: '/register', label: 'Register' },
 ];
 
 function NavLinks() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const token = useAuthStore((state) => state.token);
+  const username = useAuthStore((state) => state.username);
+  const logout = useAuthStore((state) => state.logout);
+
+  function handleLogout() {
+    logout();
+    navigate('/login');
+  }
+
   return (
     <div className="nav-links">
-      {NAV_ITEMS.map((item) => (
+      {BASE_NAV_ITEMS.map((item) => (
         <Link
           key={item.to}
           to={item.to}
@@ -26,6 +35,23 @@ function NavLinks() {
           {item.label}
         </Link>
       ))}
+      {token ? (
+        <>
+          <span className="nav-username">{username}</span>
+          <button onClick={handleLogout} className="nav-logout-btn">
+            Log out
+          </button>
+        </>
+      ) : (
+        <>
+          <Link to="/login" className={location.pathname === '/login' ? 'active' : ''}>
+            Login
+          </Link>
+          <Link to="/register" className={location.pathname === '/register' ? 'active' : ''}>
+            Register
+          </Link>
+        </>
+      )}
     </div>
   );
 }

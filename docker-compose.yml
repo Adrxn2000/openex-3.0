@@ -15,7 +15,6 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-
   redis:
     image: redis:7-alpine
     container_name: openex-redis
@@ -26,8 +25,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-
   backend:
+    build: ./backend
     image: openex-backend
     container_name: openex-backend
     ports:
@@ -40,8 +39,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-
   market-sim:
+    build: ./market-sim
     image: openex-market-sim
     container_name: openex-market-sim
     ports:
@@ -49,14 +48,13 @@ services:
     environment:
       - OLLAMA_BASE_URL=http://host.docker.internal:11434
       - BACKEND_URL=http://openex-backend:8080
-
   frontend:
+    build: ./frontend
     image: openex-frontend
     container_name: openex-frontend
     ports:
       - "5173:5173"
     depends_on:
       - backend
-
 volumes:
   postgres-data:

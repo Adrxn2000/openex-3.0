@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getAllBalances } from '../api/client';
+import { getAllBalances, deposit } from '../api/client';
 import useAuthStore from '../store/authStore';
 import MarketChart from '../components/MarketChart';
 import ChatWidget from '../components/ChatWidget';
@@ -13,6 +13,9 @@ function Dashboard() {
   const navigate = useNavigate();
   const [balances, setBalances] = useState(null);
   const [error, setError] = useState('');
+  const [depositAmount, setDepositAmount] = useState('');
+  const [depositStatus, setDepositStatus] = useState('');
+  const [depositing, setDepositing] = useState(false);
 
   useEffect(() => {
     if (!token) return;
@@ -25,8 +28,6 @@ function Dashboard() {
         })
         .catch((err) => {
           if (cancelled) return;
-          // Expired or invalid token: stop polling and send the user
-          // back to log in, instead of retrying forever every 8s.
           if (err.status === 401) {
             logout();
             navigate('/login');
@@ -43,6 +44,38 @@ function Dashboard() {
       clearInterval(interval);
     };
   }, [token]);
+
+  function handleLogout() {
+    logout();
+    navigate('/login');
+  }
+
+  async function handleDeposit(e) {
+    e.preventDefault();
+    setDepositStatus('');
+    const amount = Number(depositAmount);
+    if (!amount || amount <= 0) {
+      setDepositStatus('Enter an amount greater than 0');
+      return;
+    }
+    setDepositing(true);
+    try {
+      await deposit(token, amount);
+      const fresh = await getAllBalances(token);
+      setBalances(fresh);
+      setDepositAmount('');
+      setDepositStatus(`Deposited $${amount.toFixed(2)}`);
+    } catch (err) {
+      if (err.status === 401) {
+        logout();
+        navigate('/login');
+        return;
+      }
+      setDepositStatus(err.message);
+    } finally {
+      setDepositing(false);
+    }
+  }
 
   if (!token) {
     return (
@@ -67,8 +100,15 @@ function Dashboard() {
 
   return (
     <div className="page">
-      <h1>Welcome back, {username}</h1>
-      <p className="subtitle">Here's your account overview</p>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+        <div>
+          <h1>Welcome back, {username}</h1>
+          <p className="subtitle">Here's your account overview</p>
+        </div>
+        <button onClick={handleLogout} className="btn-ghost" style={{ width: 'auto' }}>
+          Log out
+        </button>
+      </div>
 
       {error && <div className="error-box">{error}</div>}
 
@@ -95,6 +135,29 @@ function Dashboard() {
           ))}
         </div>
       )}
+
+      <div className="card" style={{ marginTop: 8, marginBottom: 20, maxWidth: 360 }}>
+        <h3 style={{ marginTop: 0, marginBottom: 14 }}>Deposit funds</h3>
+        <form onSubmit={handleDeposit} style={{ padding: 0, border: 'none', background: 'transparent' }}>
+          <div>
+            <label>Amount (USD)</label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={depositAmount}
+              onChange={(e) => setDepositAmount(e.target.value)}
+              placeholder="100.00"
+            />
+          </div>
+          <button type="submit" disabled={depositing}>
+            {depositing ? 'Depositing…' : 'Deposit'}
+          </button>
+          {depositStatus && (
+            <div className="field-hint" style={{ marginTop: 10 }}>{depositStatus}</div>
+          )}
+        </form>
+      </div>
 
       <MarketChart />
       <ChatWidget />

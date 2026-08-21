@@ -29,10 +29,10 @@ async function request(path, options = {}) {
   return response.json();
 }
 
-export function register(username, password) {
+export function register(username, email, password) {
   return request('/api/auth/register', {
     method: 'POST',
-    body: JSON.stringify({ username, password }),
+    body: JSON.stringify({ username, email, password }),
   });
 }
 

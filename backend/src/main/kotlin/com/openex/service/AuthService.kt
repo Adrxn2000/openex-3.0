@@ -21,18 +21,20 @@ class AuthService(
      * Creates a new user AND a USD wallet account for them in one
      * transaction, then returns a token so they're immediately logged in.
      */
-    @Transactional
-    fun register(username: String, rawPassword: String): String {
-        require(userRepository.findByUsername(username) == null) { "Username already taken" }
+   @Transactional
+    fun register(username: String, email: String, rawPassword: String): String { 
+    require(userRepository.findByUsername(username) == null) { "Username already taken" }
+    require(email.contains("@") && email.length > 3) { "Invalid email address" }
+    require(userRepository.findByEmail(email) == null) { "Email already registered" }
 
-        val user = userRepository.save(
-            User(
-                id = UUID.randomUUID(),
-                username = username,
-                passwordHash = passwordEncoder.encode(rawPassword)
-            )
+    val user = userRepository.save(
+        User(
+            id = UUID.randomUUID(),
+            username = username,
+            email = email,
+            passwordHash = passwordEncoder.encode(rawPassword)
         )
-
+    )
        accountRepository.save(
             Account(id = UUID.randomUUID(), userId = user.id, currency = "USD")
         )

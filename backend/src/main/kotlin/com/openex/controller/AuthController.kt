@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
+data class RegisterRequest(val username: String, val email: String, val password: String)
 data class AuthRequest(val username: String, val password: String)
 data class AuthResponse(val token: String)
 
@@ -16,8 +17,8 @@ class AuthController(
 ) {
 
     @PostMapping("/register")
-    fun register(@RequestBody request: AuthRequest): AuthResponse =
-        AuthResponse(authService.register(request.username, request.password))
+    fun register(@RequestBody request: RegisterRequest): AuthResponse =
+        AuthResponse(authService.register(request.username, request.email, request.password))
 
     @PostMapping("/login")
     fun login(@RequestBody request: AuthRequest): AuthResponse =
