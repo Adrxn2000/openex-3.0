@@ -1,8 +1,7 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from langchain_ollama import ChatOllama
-from langchain_core.prompts import PromptTemplate
-from langchain_core.tools import tool
+from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 import numpy as np
 import pandas as pd
 import requests
@@ -15,7 +14,14 @@ CORS(app, origins=["http://localhost:5174"])
 
 OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
 BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:8080")
-llm = ChatOllama(model="tinyllama", timeout=30, base_url=OLLAMA_BASE_URL, keep_alive="30m", num_predict=150)
+llm = ChatOllama(
+    model="llama3.2:1b",
+    timeout=30,
+    base_url=OLLAMA_BASE_URL,
+    keep_alive="30m",
+    num_predict=60,
+    stop=["\nUser:", "\nuser:", "User:", "\nAssistant:", "\nAI"]
+)
 
 RATE_LIMIT_WINDOW = 60
 MAX_REQUESTS_PER_WINDOW = 10
@@ -23,40 +29,26 @@ rate_limit_store = {}
 INTERNAL_API_KEY = "openex-secure-sim-key-2026"
 
 
-FINANCIAL_PERSONA = """You are OpenEx Assistant for a simulated crypto exchange. Keep answers short and casual, 
-matching the user's tone.
+SYSTEM_PROMPT = (
+    "You are OpenEx Assistant for a simulated crypto exchange. "
+    "Answer in 1-2 short, casual sentences. "
+    "You do not have access to the user's real trades, balances, or "
+    "account data — never invent numbers or trade history. "
+    "If asked about their balance or trades, tell them to check the "
+    "dashboard. Do not write out a conversation or continue speaking "
+    "as the user."
+)
 
-User: hi
-Assistant: Hey! Ask me about your trades, balance, or how OpenEx works.
-
-User: what's my balance?
-Assistant: Let me check that for you.
-
-User: {question}
-Assistant:"""
-
-chat_prompt = PromptTemplate(input_variables=["question"], template=FINANCIAL_PERSONA)
-
-@tool
-def get_user_wallet_balance(auth_header_token: str) -> str:
-    """Fetch the user's live simulated wallet balance from the backend, given their raw Authorization header value."""
-    url = BACKEND_URL + "/api/wallets/balance"
-    headers = {"Authorization": auth_header_token}
-    try:
-        response = requests.get(url, headers=headers, timeout=5)
-        if response.status_code == 200:
-            data = response.json()
-            balance = data.get("balance", "0.00")
-            currency = data.get("currency", "USD")
-            return "The user's actual wallet balance is " + str(balance) + " " + str(currency) + "."
-        elif response.status_code == 401:
-            return "Unauthorized. The user session token is invalid or expired."
-        else:
-            return "Could not fetch balance. Kotlin service returned status " + str(response.status_code) + "."
-    except requests.exceptions.RequestException as e:
-        return "Error connecting to Kotlin backend service: " + str(e)
+FEW_SHOT = [
+    HumanMessage(content="hi"),
+    AIMessage(content="Hey! Ask me how OpenEx works or what a market order is."),
+    HumanMessage(content="what's a limit order?"),
+    AIMessage(content="It's an order that only fills at your chosen price or better."),
+]
 
 
+def build_messages(question: str):
+    return [SystemMessage(content=SYSTEM_PROMPT), *FEW_SHOT, HumanMessage(content=question)]
 
 
 def is_rate_limited(ip_address):
@@ -71,6 +63,8 @@ def is_rate_limited(ip_address):
 
 
 def generate_ticks(n=300, start_price=45000):
+    """Synthetic fallback — only used if the real CoinGecko feed is
+    unreachable and there's no cached data yet."""
     returns = np.random.normal(loc=0.0001, scale=0.006, size=n)
     volatility_clusters = np.random.choice([1, 1, 1, 3], size=n)
     returns = returns * volatility_clusters
@@ -80,11 +74,40 @@ def generate_ticks(n=300, start_price=45000):
     return df
 
 
+_ticks_cache = {"data": None, "fetched_at": 0}
+TICKS_CACHE_TTL = 60  # seconds — refresh real data once a minute
+
+
+def fetch_real_btc_ticks():
+    now = time.time()
+    if _ticks_cache["data"] is not None and now - _ticks_cache["fetched_at"] < TICKS_CACHE_TTL:
+        return _ticks_cache["data"]
+
+    try:
+        resp = requests.get(
+            "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart",
+            params={"vs_currency": "usd", "days": "1"},
+            timeout=8
+        )
+        resp.raise_for_status()
+        prices = resp.json()["prices"]  # list of [timestamp_ms, price]
+        df = pd.DataFrame(prices, columns=["timestamp", "price"])
+        df['moving_avg_10'] = df['price'].rolling(10).mean()
+        df = df.fillna(0)
+        records = df[['price', 'moving_avg_10']].to_dict(orient='records')
+        _ticks_cache["data"] = records
+        _ticks_cache["fetched_at"] = now
+        return records
+    except (requests.exceptions.RequestException, KeyError, ValueError, IndexError):
+        if _ticks_cache["data"] is not None:
+            return _ticks_cache["data"]
+        return generate_ticks().fillna(0).to_dict(orient='records')
+
+
 @app.route('/api/market/ticks')
 def ticks():
-    df = generate_ticks()
-    df = df.fillna(0)
-    return jsonify(df.to_dict(orient='records'))
+    records = fetch_real_btc_ticks()
+    return jsonify(records)
 
 
 @app.route('/api/chat', methods=['POST'])
@@ -104,22 +127,31 @@ def chat():
     if not question:
         return jsonify({'error': 'question field is required'}), 400
 
+    q_lower = question.lower()
+    wants_balance = 'balance' in q_lower or 'money' in q_lower or 'funds' in q_lower
+
+    if user_jwt_auth and wants_balance:
+        url = BACKEND_URL + "/api/wallets/balance"
+        headers = {"Authorization": user_jwt_auth}
+        try:
+            response = requests.get(url, headers=headers, timeout=5)
+            if response.status_code == 200:
+                balance_data = response.json()
+                balance = balance_data.get("balance", "0.00")
+                currency = balance_data.get("currency", "USD")
+                return jsonify({'response': f"Your balance is {balance} {currency}."})
+            elif response.status_code == 401:
+                return jsonify({'response': "Your session's expired — log in again to check your balance."})
+            else:
+                return jsonify({'response': "Couldn't reach your balance right now, try again in a moment."})
+        except requests.exceptions.RequestException:
+            return jsonify({'response': "Couldn't reach your balance right now, try again in a moment."})
+
     try:
-        prompt_string = chat_prompt.format(question=question)
-        ai_message = llm.invoke(prompt_string)
-
-        q_lower = question.lower()
-        wants_balance = 'balance' in q_lower or 'money' in q_lower or 'funds' in q_lower
-
-        if user_jwt_auth and wants_balance:
-            tool_result = get_user_wallet_balance.invoke({"auth_header_token": user_jwt_auth})
-            final_prompt = prompt_string + "\n[System Tool Result: " + tool_result + "]\nAnswer the user based on this real balance tool result."
-            final_response = llm.invoke(final_prompt)
-            return jsonify({'response': final_response.content})
-
+        messages = build_messages(question)
+        ai_message = llm.invoke(messages)
         response_text = ai_message.content if hasattr(ai_message, 'content') else str(ai_message)
-        return jsonify({'response': response_text})
-
+        return jsonify({'response': response_text.strip()})
     except Exception as e:
         app.logger.error("Agentic Execution Error: " + str(e))
         return jsonify({'error': 'The trading assistant encountered an execution error. Please try again.'}), 503
