@@ -68,7 +68,7 @@ ollama pull llama3.2:1b
 python app.py
 ```
 
-Visit **http://localhost:5173** — register an account, deposit simulated USD
+Visit **http://localhost:5174/** — register an account, deposit simulated USD
 and/or BTC funds, place an order, and chat with the trading assistant.
 
 ### Running the full stack in Docker (all services)
