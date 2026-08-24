@@ -3,7 +3,8 @@
 A full-stack simulated cryptocurrency exchange built over a 15-day sprint for the
 CAPACITI End-to-End Technologies Programme. OpenEx 3.0 implements a double-entry
 ledger, a price-time priority matching engine, real-time order book streaming,
-and a locally-hosted AI trading assistant — across four independent services.
+live market data, and a locally-hosted AI trading assistant — across four
+independent services.
 
 ## Architecture
 
@@ -13,7 +14,7 @@ and a locally-hosted AI trading assistant — across four independent services.
 | Database | PostgreSQL | 5432 | Accounts, orders, ledger entries (Flyway-versioned) |
 | Cache | Redis | 6379 | Reserved for future use |
 | Frontend | React / Vite | 5173 | Trading terminal SPA |
-| AI Service | Python / Flask / LangChain / Ollama | 5001 | Market simulation + AI assistant |
+| AI Service | Python / Flask / LangChain / Ollama | 5001 | Market data + AI assistant |
 
 The AI assistant is accessed through a backend proxy, not directly:
 
@@ -41,7 +42,7 @@ git clone https://github.com/Adrxn2000/openex-3.0.git
 cd openex-3.0
 
 # 2. Start Postgres + Redis
-docker compose up -d
+docker compose up -d postgres redis
 
 # 3. Start the backend
 cd backend
@@ -61,22 +62,42 @@ python -m venv venv
 pip install -r requirements.txt
 
 # 6. Pull the local model
-ollama pull tinyllama
+ollama pull llama3.2:1b
 
 # 7. Start the AI service
 python app.py
 ```
 
-Visit **http://localhost:5173** — register an account, deposit simulated funds,
-place an order, and chat with the trading assistant.
+Visit **http://localhost:5173** — register an account, deposit simulated USD
+and/or BTC funds, place an order, and chat with the trading assistant.
+
+### Running the full stack in Docker (all services)
+
+```bash
+cd backend
+./gradlew.bat bootJar     # Windows — build the jar first, see note below
+docker compose up -d --build
+```
 
 ### AI Model Note
-The assistant uses **TinyLlama** rather than Mistral/Llama 3, due to local hardware
-memory constraints encountered during development (Mistral requires more RAM than
-available for CPU-only inference on the development machine). On higher-spec hardware,
-swap the model name in `market-sim/app.py`:
+The assistant runs **Llama 3.2 1B** — a small, genuinely instruction-tuned model
+that runs comfortably on CPU-only hardware via Ollama. An earlier version of this
+project used TinyLlama, but it proved unreliable at following instructions (it
+would ramble past its intended reply and occasionally fabricate account details
+such as trade history or balances). Llama 3.2 1B is a similar size but far more
+reliable at staying on-topic and respecting stop conditions.
+
+To avoid any risk of the LLM inventing financial figures, **balance questions are
+answered deterministically in Python**, not by the model: the Flask service
+detects balance-related questions by keyword, fetches the real balance from the
+backend, and returns it directly — the LLM never sees or paraphrases real account
+numbers. The LLM only handles general conversational questions (e.g. "what's a
+limit order?").
+
+On higher-spec hardware, swap the model name in `market-sim/app.py`:
 ```python
-llm = ChatOllama(model="mistral", timeout=30)
+llm = ChatOllama(model="mistral", timeout=30, ...)
+```
 
 ### Docker Build Note
 The backend Dockerfile copies a pre-built jar rather than compiling inside the
@@ -91,19 +112,19 @@ cd backend
 On a faster connection, this could be converted back to a full multi-stage build
 that compiles from source inside the container — the original Dockerfile approach
 attempted first, kept here as a note for future improvement.
-```
 
 ## API Overview
 
 | Endpoint | Method | Auth | Purpose |
 |---|---|---|---|
-| `/api/auth/register` | POST | — | Create a user + USD/BTC wallets |
+| `/api/auth/register` | POST | — | Create a user (username, email, password) + USD/BTC wallets |
 | `/api/auth/login` | POST | — | Returns a JWT |
 | `/api/wallets/balance` | GET | JWT | Single (USD) balance |
 | `/api/wallets/balances` | GET | JWT | All currency balances |
-| `/api/wallets/deposit` | POST | JWT | Simulated faucet deposit |
+| `/api/wallets/deposit` | POST | JWT | Simulated faucet deposit — `{ amount, currency }`, defaults to USD; supports BTC |
 | `/api/orders` | POST | JWT + `Idempotency-Key` | Place a limit/market order |
-| `/api/assistant/chat` | POST | JWT | AI trading assistant (proxied to Flask) |
+| `/api/market/ticks` | GET | — | Real BTC/USD price history (proxied from CoinGecko, cached 60s) |
+| `/api/chat` | POST | JWT + internal API key | AI trading assistant |
 | `/ws` | WebSocket | — | STOMP endpoint, subscribe to `/topic/orderbook` |
 
 ## Running Tests
@@ -138,20 +159,34 @@ openex-3.0/
   matched highest-first, with partial-fill support via `remaining_qty`.
 - **Self-trade prevention** — the matching engine skips candidate orders belonging
   to the same user as the incoming order.
-- **JWT authentication** — stateless, BCrypt-hashed passwords, 1-hour token expiry.
+- **Full two-leg trade settlement** — executing a trade moves both the USD leg
+  (buyer → seller) and the BTC leg (seller → buyer) through the ledger in the
+  same transaction, so wallet balances accurately reflect completed trades.
+- **Currency-generic faucet** — deposits look up a faucet account by currency
+  dynamically, so USD and BTC (and future currencies) can all be funded the
+  same way without hardcoding a second faucet path.
+- **JWT authentication** — stateless, BCrypt-hashed passwords, expiring tokens;
+  the frontend detects a `401` from an expired token and logs the user out
+  automatically rather than retrying indefinitely.
+- **Deterministic balance answers in chat** — the AI assistant never generates
+  real financial figures itself; balance questions are answered from a direct
+  backend lookup, sidestepping small-model hallucination risk entirely.
 
 ## Known Limitations
 
-- Trade settlement currently moves only the USD leg of a trade; the traded asset
-  (e.g. BTC) is not yet moved to a separate ledger account in the same transaction.
+- The market-sim faucet allows unlimited simulated deposits of any currency —
+  intentional for a demo/learning environment, not production behavior.
 - Ollama and its model weights must be installed separately on each machine; not
   yet part of the standard `docker-compose up` flow.
-- The AI assistant's tool-calling (fetching a live wallet balance) is currently
-  triggered by keyword matching in the question text rather than full LLM-driven
-  function selection — a pragmatic simplification made under deadline pressure.
-- Dockerfiles exist for all three services but full multi-container orchestration
-  (including Ollama in-container) has not been fully verified on constrained
-  development hardware.
+- The AI assistant's balance lookup is triggered by keyword matching in the
+  question text rather than full LLM-driven function selection — a deliberate
+  simplification that also happens to eliminate hallucination risk on financial
+  figures.
+- BTC/USD chart data reflects real market history from CoinGecko, refreshed
+  once per minute (cached), rather than a live tick-by-tick feed.
+- Dockerfiles exist for all three services and `docker compose up -d --build`
+  builds and runs the full stack; the backend still requires a locally-built
+  jar first (see Docker Build Note above).
 
 ## Sprint Deliverables (15-Day Plan)
 
@@ -171,7 +206,7 @@ openex-3.0/
 | 12 | Ollama + LangChain chat endpoint |
 | 13 | Agentic wallet-balance tool calling |
 | 14 | Chart.js live price chart, AI chat widget |
-| 15 | Dockerfiles, healthcheck-gated compose, this README |
+| 15 | Dockerfiles, healthcheck-gated compose, two-leg trade settlement, live BTC market data, deposit currency selection, README |
 
 ## Author
 
