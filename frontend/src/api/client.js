@@ -57,11 +57,11 @@ export function getAllBalances(token) {
   });
 }
 
-export function deposit(token, amount) {
+export function deposit(token, amount, currency = 'USD') {
   return request('/api/wallets/deposit', {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ amount }),
+    body: JSON.stringify({ amount, currency }),
   });
 }
 
@@ -75,3 +75,4 @@ export function placeOrder(token, side, orderType, price, quantity) {
     body: JSON.stringify({ side, orderType, price, quantity }),
   });
 }
+

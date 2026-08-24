@@ -14,6 +14,7 @@ function Dashboard() {
   const [balances, setBalances] = useState(null);
   const [error, setError] = useState('');
   const [depositAmount, setDepositAmount] = useState('');
+  const [depositCurrency, setDepositCurrency] = useState('USD');
   const [depositStatus, setDepositStatus] = useState('');
   const [depositing, setDepositing] = useState(false);
 
@@ -60,11 +61,12 @@ function Dashboard() {
     }
     setDepositing(true);
     try {
-      await deposit(token, amount);
+      await deposit(token, amount, depositCurrency);
       const fresh = await getAllBalances(token);
       setBalances(fresh);
       setDepositAmount('');
-      setDepositStatus(`Deposited $${amount.toFixed(2)}`);
+      const decimals = depositCurrency === 'USD' ? 2 : 8;
+      setDepositStatus(`Deposited ${amount.toFixed(decimals)} ${depositCurrency}`);
     } catch (err) {
       if (err.status === 401) {
         logout();
@@ -140,14 +142,21 @@ function Dashboard() {
         <h3 style={{ marginTop: 0, marginBottom: 14 }}>Deposit funds</h3>
         <form onSubmit={handleDeposit} style={{ padding: 0, border: 'none', background: 'transparent' }}>
           <div>
-            <label>Amount (USD)</label>
+            <label>Currency</label>
+            <select value={depositCurrency} onChange={(e) => setDepositCurrency(e.target.value)}>
+              <option value="USD">USD</option>
+              <option value="BTC">BTC</option>
+            </select>
+          </div>
+          <div>
+            <label>Amount</label>
             <input
               type="number"
               min="0"
-              step="0.01"
+              step={depositCurrency === 'USD' ? '0.01' : '0.00000001'}
               value={depositAmount}
               onChange={(e) => setDepositAmount(e.target.value)}
-              placeholder="100.00"
+              placeholder={depositCurrency === 'USD' ? '100.00' : '0.01000000'}
             />
           </div>
           <button type="submit" disabled={depositing}>

@@ -13,15 +13,17 @@ class WalletService(
     private val ledgerService: LedgerService
 ) {
     companion object {
-        val FAUCET_ACCOUNT_ID: UUID = UUID.fromString("00000000-0000-0000-0000-00000000000f")
+        val FAUCET_USER_ID: UUID = UUID.fromString("00000000-0000-0000-0000-000000000001")
     }
 
-    fun deposit(username: String, amount: BigDecimal): BigDecimal {
+    fun deposit(username: String, amount: BigDecimal, currency: String = "USD"): BigDecimal {
         val user = userRepository.findByUsername(username)
             ?: throw IllegalArgumentException("Unknown user")
-        val account = accountRepository.findByUserIdAndCurrency(user.id, "USD")
-            ?: throw IllegalStateException("No USD wallet account found for user")
-        ledgerService.transfer(FAUCET_ACCOUNT_ID, account.id, amount)
+        val account = accountRepository.findByUserIdAndCurrency(user.id, currency)
+            ?: throw IllegalStateException("No $currency wallet account found for user")
+        val faucetAccount = accountRepository.findByUserIdAndCurrency(FAUCET_USER_ID, currency)
+            ?: throw IllegalStateException("No faucet account configured for currency $currency")
+        ledgerService.transfer(faucetAccount.id, account.id, amount)
         return ledgerService.balanceOf(account.id)
     }
 

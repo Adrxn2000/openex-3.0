@@ -13,7 +13,9 @@ import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty
 
 data class DepositRequest @JsonCreator constructor(
-    @JsonProperty("amount") val amount: BigDecimal)
+    @JsonProperty("amount") val amount: BigDecimal,
+    @JsonProperty("currency") val currency: String = "USD"
+)
 data class BalanceResponse(val currency: String, val balance: BigDecimal)
 
 @RestController
@@ -29,8 +31,8 @@ class WalletController(
     ): BalanceResponse {
         val token = authHeader.removePrefix("Bearer ").trim()
         val username = jwtService.extractUsername(token)
-        val newBalance = walletService.deposit(username, request.amount)
-        return BalanceResponse(currency = "USD", balance = newBalance)
+        val newBalance = walletService.deposit(username, request.amount, request.currency)
+        return BalanceResponse(currency = request.currency, balance = newBalance)
     }
 
     @GetMapping("/balance")
